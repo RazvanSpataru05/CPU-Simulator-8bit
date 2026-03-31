@@ -136,6 +136,7 @@
     <ClInclude Include="Dissasembler.h" />
     <ClInclude Include="EditorUI.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="include\imgui_internal.h" />
     <ClInclude Include="InstructionDef.h" />
     <ClInclude Include="ISAEntry.h" />
     <ClInclude Include="MemoryUnit.h" />
@@ -149,6 +150,7 @@
     <ClCompile Include="EditorUI.cpp" />
     <ClCompile Include="include\imgui-SFML.cpp" />
     <ClCompile Include="include\imgui.cpp" />
+    <ClCompile Include="include\imgui_demo.cpp" />
     <ClCompile Include="include\imgui_draw.cpp" />
     <ClCompile Include="include\imgui_tables.cpp" />
     <ClCompile Include="include\imgui_widgets.cpp" />

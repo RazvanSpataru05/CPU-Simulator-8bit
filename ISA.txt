@@ -1,8 +1,0 @@
-﻿0x00	NOP	1 Byte	No Operation. Nu face nimic, doar trece la următoarea instrucțiune.
-0x01	LDA_IM	2 Byți	Load Acumulator Imediat. Pune valoarea operandului direct în registrul A.
-0x02	LDA_DIR	2 Byți	Load Acumulator Direct. Citește memoria la adresa specificată de operand și pune valoarea în A.
-0x03	STA_DIR	2 Byți	Store Acumulator. Ia valoarea din A și o scrie în memorie la adresa dată de operand.
-0x04	ADD_IM	2 Byți	Adună Imediat. Adună valoarea operandului cu valoarea din A. Rezultatul rămâne în A. Dacă rezultatul e 0, setează Zero Flag.
-0x05	JMP	2 Byți	Jump. Schimbă Program Counter-ul (PC) la adresa specificată de operand. (Sari la altă linie de cod).
-0x06	JZ	2 Byți	Jump if Zero. Sare la adresa dată de operand DOAR DACĂ Zero Flag este setat la 1 (adevărat). Util pentru bucle/if-uri.
-0xFF	HLT	1 Byte	Halt. Oprește ciclul de execuție al procesorului.

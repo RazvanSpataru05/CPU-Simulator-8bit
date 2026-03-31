@@ -2,6 +2,7 @@
 #include "CPU.h"
 #include "MemoryUnit.h"
 #include "Dissasembler.h"
+#include "ISAEntry.h"
 #include "SFML/Graphics.hpp"
 #include "imgui.h"
 #include "imgui-SFML.h"

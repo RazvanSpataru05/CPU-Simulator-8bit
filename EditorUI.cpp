@@ -5,15 +5,153 @@ uint16_t currentPage{};
 constexpr uint16_t PAGE_SIZE = 256u;
 bool visibility = false;
 
+enum PageNumber
+{
+	GLOSSARY_PAGE = 1,
+	LOAD_STORE_PAGE,
+	ARITHMETIC_PAGE,
+	LOGICAL_PAGE,
+	COMPARE_PAGE,
+	JUMP_PAGE,
+	STACK_PAGE,
+	MISC_PAGE
+};
+
 static const char* FlagToStr(bool value)
 {
 	return value ? "True" : "False";
+}
+
+static void SetupInstructionsTableColumn()
+{
+	ImGui::TableSetupColumn("Mnemonic", ImGuiTableColumnFlags_WidthFixed, 92.0f);
+	ImGui::TableSetupColumn("Opcode", ImGuiTableColumnFlags_WidthFixed, 56.0f);
+	ImGui::TableSetupColumn("Size", ImGuiTableColumnFlags_WidthFixed, 36.0f);
+	ImGui::TableSetupColumn("Description", ImGuiTableColumnFlags_WidthStretch);
+
+	ImGui::PushStyleColor(ImGuiCol_TableHeaderBg, ImVec4(0.18f, 0.28f, 0.45f, 1.0f));
+	ImGui::TableHeadersRow();
+	ImGui::PopStyleColor();
+}
+
+static void TextCentered(std::string_view text)
+{
+	float cellWidth = ImGui::GetColumnWidth();
+	float textWidth = ImGui::CalcTextSize(text.data()).x;
+	float offset = (cellWidth - textWidth) * 0.5f;
+
+	if (offset > 0.0f)
+	{
+		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offset);
+	}
+	ImGui::TextUnformatted(text.data(), text.data() + text.size());
+}
+
+void DisplayInstruction(const ISAEntry* table, int index)
+{
+	ImGui::TableNextRow();
+	ImGui::TableSetColumnIndex(0);
+	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.40f, 0.80f, 1.00f, 1.0f));
+	TextCentered(table[index].mnemonic);
+	ImGui::PopStyleColor();
+
+	ImGui::TableSetColumnIndex(1);
+	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.00f, 0.75f, 0.20f, 1.0f));
+	TextCentered(std::format("0x{:02X}", table[index].opcode));
+	ImGui::PopStyleColor();
+
+	ImGui::TableSetColumnIndex(2);
+	ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.55f, 0.95f, 0.55f, 1.0f));
+	TextCentered(std::format("{}", table[index].size));
+	ImGui::PopStyleColor();
+
+	ImGui::TableSetColumnIndex(3);
+	ImGui::TextWrapped("%s", table[index].description);
+}
+
+void DisplayPageInstructions(uint8_t firstInstruction, uint8_t lastInstruction)
+{
+	SetupInstructionsTableColumn();
+
+	int tableSize;
+	const ISAEntry* table = GetISATable(tableSize);
+	for (int i = 0; i < tableSize; i++)
+	{
+		if (table[i].opcode >= firstInstruction && table[i].opcode <= lastInstruction)
+			DisplayInstruction(table, i);
+	}
+}
+
+void DisplayPageInstructions(std::initializer_list<uint8_t> opcodes)
+{
+	SetupInstructionsTableColumn();
+
+	int tableSize;
+	const ISAEntry* table = GetISATable(tableSize);
+	for (int i = 0; i < tableSize; i++)
+	{
+		for (uint8_t opcode : opcodes)
+		{
+			if (table[i].opcode == opcode)
+				DisplayInstruction(table, i);
+		}
+	}
+}
+
+void DisplayTable(const char* pageTitle, const char* tableTitle, uint8_t firstInstruction, uint8_t lastInstruction)
+{
+	float windowWidth = ImGui::GetWindowSize().x;
+	float titleWidth = ImGui::CalcTextSize(pageTitle).x;
+
+	ImGui::SetCursorPosX((windowWidth - titleWidth) * 0.5f);
+	ImGui::SetCursorPosY(windowWidth * 0.05f);
+	ImGui::TextColored(ImVec4(0.90f, 0.90f, 0.90f, 1.0f), pageTitle);
+	ImGui::Spacing();
+	ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(0.35f, 0.55f, 0.85f, 1.0f));
+	ImGui::Separator();
+	ImGui::PopStyleColor();
+	ImGui::Spacing();
+
+	ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(8.0f, 5.0f));
+	if (ImGui::BeginTable(tableTitle, 4, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_RowBg |
+		ImGuiTableFlags_PadOuterX))
+	{
+		DisplayPageInstructions(firstInstruction, lastInstruction);
+		ImGui::EndTable();
+	}
+	ImGui::PopStyleVar();
+}
+
+void DisplayTable(const char* pageTitle, const char* tableTitle, std::initializer_list<uint8_t> opcodes)
+{
+	float titleWidth = ImGui::CalcTextSize(pageTitle).x;
+	float windowWidth = ImGui::GetWindowSize().x;
+
+	ImGui::SetCursorPosX((windowWidth - titleWidth) * 0.5f);
+	ImGui::SetCursorPosY(windowWidth * 0.05f);
+	ImGui::TextColored(ImVec4(0.90f, 0.90f, 0.90f, 1.0f), pageTitle);
+	ImGui::Spacing();
+	ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(0.35f, 0.55f, 0.85f, 1.0f));
+	ImGui::Separator();
+	ImGui::PopStyleColor();
+	ImGui::Spacing();
+
+	ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(8.0f, 5.0f));
+	if (ImGui::BeginTable(tableTitle, 4, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_RowBg |
+		ImGuiTableFlags_PadOuterX))
+	{
+		DisplayPageInstructions(opcodes);
+		ImGui::EndTable();
+	}
+	ImGui::PopStyleVar();
 }
 
 namespace EditorUI
 {
 	void DrawCpuState(const CPU& cpu)
 	{
+		//ImGui::ShowDemoWindow();
+
 		ImGui::Begin("CPU State");
 		ImGui::Text("Program Counter: 0x%04X", cpu.GetPC());
 		ImGui::Text("Stack Pointer: 0x%02X", cpu.GetSP());
@@ -89,7 +227,8 @@ namespace EditorUI
 			currentPage = currentPage - 1 < 0 ? 255 : currentPage - 1;
 
 		ImGui::SameLine();
-		ImGui::Text("                                                                              ");
+		std::string spaces = std::string(" ", 79);
+		ImGui::Text(spaces.c_str());
 		ImGui::SameLine();
 		if (ImGui::Button("\t\t\tNext\t\t\t"))
 			currentPage = (currentPage + 1) % 256;
@@ -175,7 +314,7 @@ namespace EditorUI
 		if (visibility)
 		{
 			ImGui::Begin("Help Menu");
-			std::string pageText = "Page " + std::to_string(helperPage) + "/7";
+			std::string pageText = "Page " + std::to_string(helperPage) + "/8";
 			float windowWidth = ImGui::GetWindowSize().x;
 			float textWidth = ImGui::CalcTextSize(pageText.c_str()).x;
 			float navButtonWidth = ImGui::CalcTextSize(">").x + ImGui::GetStyle().FramePadding.x * 2;
@@ -186,25 +325,25 @@ namespace EditorUI
 			ImGui::Text(pageText.c_str());
 			ImGui::SameLine();
 
-			ImGui::SetCursorPosX(windowWidth - buttonWidth - ImGui::GetStyle().WindowPadding.x);
+			ImGui::SetCursorPosX(windowWidth - buttonWidth - ImGui::GetStyle().WindowPadding.x * 2.0f);
 			if (ImGui::Button("X"))
 			{
 				visibility = false;
 			}
 
-			ImGui::SetCursorPosY(windowWidth * 0.055f - ImGui::GetStyle().WindowPadding.y);
-			if (ImGui::Button("<") && helperPage > 1)
+			ImGui::SetCursorPosY(windowWidth * 0.055f - ImGui::GetStyle().WindowPadding.y * 1.2f);
+			if (ImGui::Button("<") && helperPage > 1u)
 				helperPage--;
 
 			ImGui::SameLine();
-			ImGui::SetCursorPosX(windowWidth - navButtonWidth - ImGui::GetStyle().WindowPadding.x);
-			ImGui::SetCursorPosY(windowWidth * 0.055f - ImGui::GetStyle().WindowPadding.y);
-			if (ImGui::Button(">") && helperPage < 7)
+			ImGui::SetCursorPosX(windowWidth - navButtonWidth - ImGui::GetStyle().WindowPadding.x * 2.0f);
+			ImGui::SetCursorPosY(windowWidth * 0.055f - ImGui::GetStyle().WindowPadding.y * 1.2f);
+			if (ImGui::Button(">") && helperPage < 8)
 				helperPage++;
 
 			switch (helperPage)
 			{
-			case 1u:
+			case PageNumber::GLOSSARY_PAGE:
 			{
 				const char* title = "Glossary";
 				float titleWidth = ImGui::CalcTextSize(title).x;
@@ -228,7 +367,8 @@ namespace EditorUI
 						{"SP", "Stack Pointer"},
 						{"A", "Accumulator Register"},
 						{"B", ""},
-						{"C", "Counter Register"}
+						{"C", "Counter Register"},
+						{"D", ""}
 					};
 
 					for (const auto& [mnemonic, definition] : glossary)
@@ -243,7 +383,41 @@ namespace EditorUI
 				}
 				break;
 			}
-
+			case PageNumber::LOAD_STORE_PAGE:
+			{
+				DisplayTable("Load & Store Instructions Table", "load_store_table", 0x01, 0x10);
+				break;
+			}
+			case PageNumber::ARITHMETIC_PAGE:
+			{
+				DisplayTable("Arithmetic Instructions Table", "arithmetic_table", 0x20, 0x2B);
+				break;
+			}
+			case PageNumber::LOGICAL_PAGE:
+			{
+				DisplayTable("Logical Instructions Table", "logical_tabe", 0x30, 0x38);
+				break;
+			}
+			case PageNumber::COMPARE_PAGE:
+			{
+				DisplayTable("Compare Instructions Table", "compare_table", 0x40, 0x41);
+				break;
+			}
+			case PageNumber::JUMP_PAGE:
+			{
+				DisplayTable("Jump Instructions Table", "jump_table", 0x50, 0x58);
+				break;
+			}
+			case PageNumber::STACK_PAGE:
+			{
+				DisplayTable("Stack Instructions Table", "stack_table", 0x60, 0x63);
+				break;
+			}
+			case PageNumber::MISC_PAGE:
+			{
+				DisplayTable("Misc Instructions Table", "misc_table", { 0x00, 0x70, 0xFF });
+				break;
+			}
 			}
 			ImGui::End();
 		}

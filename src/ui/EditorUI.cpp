@@ -5,6 +5,24 @@ uint16_t currentPage{};
 constexpr uint16_t PAGE_SIZE = 256u;
 bool visibility = false;
 
+constexpr uint8_t FIRST_LOAD_INSTRUCTION = 0x01;
+constexpr uint8_t LAST_LOAD_INSTRUCTION = 0x14;
+
+constexpr uint8_t FIRST_ARITHMETIC_INSTRUCTION = 0x20;
+constexpr uint8_t LAST_ARITHMETIC_INSTRUCTION = 0x2B;
+
+constexpr uint8_t FIRST_LOGIC_INSTRUCTION = 0x30;
+constexpr uint8_t LAST_LOGIC_INSTRUCTION = 0x38;
+
+constexpr uint8_t FIRST_COMPARE_INSTRUCTION = 0x40;
+constexpr uint8_t LAST_COMPARE_INSTRUCTION = 0x41;
+
+constexpr uint8_t FIRST_JUMP_INSTRUCTION = 0x50;
+constexpr uint8_t LAST_JUMP_INSTRUCTION = 0x58;
+
+constexpr uint8_t FIRST_STACK_INSTRUCTION = 0x60;
+constexpr uint8_t LAST_STACK_INSTRUCTION = 0x63;
+
 enum PageNumber
 {
 	GLOSSARY_PAGE = 1,
@@ -16,6 +34,7 @@ enum PageNumber
 	STACK_PAGE,
 	MISC_PAGE
 };
+
 
 static const char* FlagToStr(bool value)
 {
@@ -47,7 +66,7 @@ static void TextCentered(std::string_view text)
 	ImGui::TextUnformatted(text.data(), text.data() + text.size());
 }
 
-void DisplayInstruction(const ISAEntry* table, int index)
+static void DisplayInstruction(const ISAEntry* table, int index)
 {
 	ImGui::TableNextRow();
 	ImGui::TableSetColumnIndex(0);
@@ -69,7 +88,7 @@ void DisplayInstruction(const ISAEntry* table, int index)
 	ImGui::TextWrapped("%s", table[index].description);
 }
 
-void DisplayPageInstructions(uint8_t firstInstruction, uint8_t lastInstruction)
+static void DisplayPageInstructions(uint8_t firstInstruction, uint8_t lastInstruction)
 {
 	SetupInstructionsTableColumn();
 
@@ -82,7 +101,7 @@ void DisplayPageInstructions(uint8_t firstInstruction, uint8_t lastInstruction)
 	}
 }
 
-void DisplayPageInstructions(std::initializer_list<uint8_t> opcodes)
+static void DisplayPageInstructions(std::initializer_list<uint8_t> opcodes)
 {
 	SetupInstructionsTableColumn();
 
@@ -98,7 +117,7 @@ void DisplayPageInstructions(std::initializer_list<uint8_t> opcodes)
 	}
 }
 
-void DisplayTable(const char* pageTitle, const char* tableTitle, uint8_t firstInstruction, uint8_t lastInstruction)
+static void DisplayTable(const char* pageTitle, const char* tableTitle, uint8_t firstInstruction, uint8_t lastInstruction)
 {
 	float windowWidth = ImGui::GetWindowSize().x;
 	float titleWidth = ImGui::CalcTextSize(pageTitle).x;
@@ -122,7 +141,7 @@ void DisplayTable(const char* pageTitle, const char* tableTitle, uint8_t firstIn
 	ImGui::PopStyleVar();
 }
 
-void DisplayTable(const char* pageTitle, const char* tableTitle, std::initializer_list<uint8_t> opcodes)
+static void DisplayTable(const char* pageTitle, const char* tableTitle, std::initializer_list<uint8_t> opcodes)
 {
 	float titleWidth = ImGui::CalcTextSize(pageTitle).x;
 	float windowWidth = ImGui::GetWindowSize().x;
@@ -156,12 +175,14 @@ namespace EditorUI
 		ImGui::Text("Program Counter: 0x%04X", cpu.GetPC());
 		ImGui::Text("Stack Pointer: 0x%02X", cpu.GetSP());
 		ImGui::Text("Instruction Register: 0x%02X", cpu.GetIR());
+		ImGui::Separator();
 
 		ImGui::Text("\nRegistry");
 		ImGui::Text("A: %d", cpu.GetA());
 		ImGui::Text("B: %d", cpu.GetB());
 		ImGui::Text("C: %d", cpu.GetC());
 		ImGui::Text("D: %d", cpu.GetD());
+		ImGui::Separator();
 
 		ImGui::Text("\nFlags");
 		ImGui::Text("Zero Flag: %s", FlagToStr(cpu.GetZeroFlag()));
@@ -169,53 +190,81 @@ namespace EditorUI
 		ImGui::Text("Negative Flag: %s", FlagToStr(cpu.GetNegativeFlag()));
 		ImGui::Text("Overflow Flag: %s", FlagToStr(cpu.GetOverflowFlag()));
 		ImGui::Text("Halt Flag: %s", FlagToStr(cpu.GetHaltFlag()));
+		ImGui::Separator();
 		ImGui::End();
 	}
 
-	void DrawDissasembler(const MemoryUnit& memoryUnit, const Dissasembler& dissasembler, const CPU& cpu)
+	void DrawAssemblyPanel(EditorMode& mode, const MemoryUnit& memoryUnit, const Dissasembler& dissasembler, const CPU& cpu)
 	{
-		ImGui::Begin("Disassembler");
-		for (size_t index = 0; index < memoryUnit.GetMemory().size(); ++index)
+		static char editorBuffer[8192] = "";
+
+		ImGui::Begin("Assembly Panel");
+		if (ImGui::Button("Edit Mode"))
 		{
-			uint8_t opcode = memoryUnit.Read(static_cast<uint16_t>(index));
-			const InstructionDef instruction = dissasembler.GetInstructionDef(opcode);
+			mode = EditorMode::EDIT;
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Dissasembly"))
+		{
+			mode = EditorMode::DISSASEMBLY;
+		}
+		ImGui::Separator();
 
-			if (index == cpu.GetPC())
-				ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0, 255, 0, 255));
-			else
-				ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 255, 255));
+		if (mode == EditorMode::EDIT)
+		{
+			ImGui::InputTextMultiline("##editor", editorBuffer, sizeof(editorBuffer), ImVec2(-1, 300), ImGuiInputTextFlags_AllowTabInput);
+			if (ImGui::Button("Assemble & Load"))
+			{
+				const std::string sourceCode(editorBuffer);
+				
+				// TODO : Call the assembler and start running the project
+			}
+		}
+		else if (mode == EditorMode::DISSASEMBLY)
+		{
+			for (size_t index = 0; index < memoryUnit.GetMemory().size(); ++index)
+			{
+				uint8_t opcode = memoryUnit.Read(static_cast<uint16_t>(index));
+				const InstructionDef instruction = dissasembler.GetInstructionDef(opcode);
 
-			switch (instruction.size)
-			{
-			case 1:
-			{
-				ImGui::Text("0x%02x: %s", opcode, instruction.mnemonic.c_str());
-				break;
+				if (index == cpu.GetPC())
+					ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0, 255, 0, 255));
+				else
+					ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 255, 255));
+
+				switch (instruction.size)
+				{
+				case 1:
+				{
+					ImGui::Text("0x%02x: %s", opcode, instruction.mnemonic.c_str());
+					break;
+				}
+				case 2:
+				{
+					uint8_t secondByte = memoryUnit.Read(static_cast<uint16_t>(index + 1));
+					ImGui::Text("0x%02x: %s %d", opcode, instruction.mnemonic.c_str(), secondByte);
+					break;
+				}
+				case 3:
+				{
+					uint8_t secondByte = memoryUnit.Read(static_cast<uint16_t>(index + 1));
+					uint8_t thirdByte = memoryUnit.Read(static_cast<uint16_t>(index + 2));
+					uint16_t address = (secondByte << 8) | thirdByte;
+					ImGui::Text("0x%02x: %s 0x%04X", opcode, instruction.mnemonic.c_str(), address);
+					break;
+				}
+				default:
+					ImGui::Text("0x%04zx: ???", index);
+					break;
+				}
+				index += instruction.size - 1;
+				ImGui::PopStyleColor();
+				if (opcode == 0xFF) break;
 			}
-			case 2:
-			{
-				uint8_t secondByte = memoryUnit.Read(static_cast<uint16_t>(index + 1));
-				ImGui::Text("0x%02x: %s %d", opcode, instruction.mnemonic.c_str(), secondByte);
-				break;
-			}
-			case 3:
-			{
-				uint8_t secondByte = memoryUnit.Read(static_cast<uint16_t>(index + 1));
-				uint8_t thirdByte = memoryUnit.Read(static_cast<uint16_t>(index + 2));
-				uint16_t address = (secondByte << 8) | thirdByte;
-				ImGui::Text("0x%02x: %s 0x%04X", opcode, instruction.mnemonic.c_str(), address);
-				break;
-			}
-			default:
-				ImGui::Text("0x%04zx: ???", index);
-				break;
-			}
-			index += instruction.size - 1;
-			ImGui::PopStyleColor();
-			if (opcode == 0xFF) break;
 		}
 		ImGui::End();
 	}
+
 	void DrawMemoryView(const MemoryUnit& memoryUnit, CPU& cpu, bool& followPC)
 	{
 		if (followPC)
@@ -227,7 +276,7 @@ namespace EditorUI
 			currentPage = currentPage - 1 < 0 ? 255 : currentPage - 1;
 
 		ImGui::SameLine();
-		std::string spaces = std::string(" ", 79);
+		const std::string spaces = std::string(" ", 79);
 		ImGui::Text(spaces.c_str());
 		ImGui::SameLine();
 		if (ImGui::Button("\t\t\tNext\t\t\t"))
@@ -385,32 +434,32 @@ namespace EditorUI
 			}
 			case PageNumber::LOAD_STORE_PAGE:
 			{
-				DisplayTable("Load & Store Instructions Table", "load_store_table", 0x01, 0x10);
+				DisplayTable("Load & Store Instructions Table", "load_store_table", FIRST_LOAD_INSTRUCTION, LAST_LOAD_INSTRUCTION);
 				break;
 			}
 			case PageNumber::ARITHMETIC_PAGE:
 			{
-				DisplayTable("Arithmetic Instructions Table", "arithmetic_table", 0x20, 0x2B);
+				DisplayTable("Arithmetic Instructions Table", "arithmetic_table", FIRST_ARITHMETIC_INSTRUCTION, LAST_ARITHMETIC_INSTRUCTION);
 				break;
 			}
 			case PageNumber::LOGICAL_PAGE:
 			{
-				DisplayTable("Logical Instructions Table", "logical_tabe", 0x30, 0x38);
+				DisplayTable("Logical Instructions Table", "logical_tabe", FIRST_LOGIC_INSTRUCTION, LAST_LOGIC_INSTRUCTION);
 				break;
 			}
 			case PageNumber::COMPARE_PAGE:
 			{
-				DisplayTable("Compare Instructions Table", "compare_table", 0x40, 0x41);
+				DisplayTable("Compare Instructions Table", "compare_table", FIRST_COMPARE_INSTRUCTION, LAST_COMPARE_INSTRUCTION);
 				break;
 			}
 			case PageNumber::JUMP_PAGE:
 			{
-				DisplayTable("Jump Instructions Table", "jump_table", 0x50, 0x58);
+				DisplayTable("Jump Instructions Table", "jump_table", FIRST_JUMP_INSTRUCTION, LAST_JUMP_INSTRUCTION);
 				break;
 			}
 			case PageNumber::STACK_PAGE:
 			{
-				DisplayTable("Stack Instructions Table", "stack_table", 0x60, 0x63);
+				DisplayTable("Stack Instructions Table", "stack_table", FIRST_STACK_INSTRUCTION, LAST_STACK_INSTRUCTION);
 				break;
 			}
 			case PageNumber::MISC_PAGE:

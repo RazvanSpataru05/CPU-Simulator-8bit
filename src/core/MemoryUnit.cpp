@@ -32,9 +32,10 @@ void MemoryUnit::Load(uint16_t startAddress, const std::vector<uint8_t>& values)
 	std::copy(values.begin(), values.end(), m_memory.begin() + startAddress);
 }
 
-void MemoryUnit::ParseValues()
+void MemoryUnit::ParseValues(const std::string& filename)
 {
-	std::ifstream file("program.txt");
+	const std::string path = "resources/" + filename;
+	std::ifstream file(path);
 	if (!file.is_open()) return;
 
 	std::vector<uint8_t> values;

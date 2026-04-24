@@ -23,7 +23,7 @@ void CPU::Step()
 		m_A = m_memoryUnit.Read(m_PC++);
 		return;
 	}
-		
+
 	case 0x02: // LDA_DIR 3by
 	{
 		uint16_t address = ComputeAddress(m_PC);
@@ -135,6 +135,36 @@ void CPU::Step()
 		return;
 	}
 
+	case 0x11: // LDA_IND 2by
+	{
+		uint16_t bc = (m_B << 8) | m_C;
+		m_A = m_memoryUnit.Read(bc);
+		return;
+	}
+
+	case 0x12: // STA_IND 2by
+	{
+		uint16_t bc = (m_B << 8) | m_C;
+		m_memoryUnit.Write(bc, m_A);
+		return;
+	}
+
+	case 0x13: // LDW_IM 3by
+	{
+		m_B = m_memoryUnit.Read(m_PC++);
+		m_C = m_memoryUnit.Read(m_PC++);
+		return;
+	}
+
+	case 0x14: // INCW 1by
+	{
+		uint16_t bc = (m_B << 8) | m_C;
+		bc++;
+		m_B = (bc >> 8) && 0xFF;
+		m_C = bc & 0xFF;
+		return;
+	}
+
 	/* Logical operations */
 
 	case 0x20: // ADD_IM 2by
@@ -143,6 +173,7 @@ void CPU::Step()
 		uint8_t oldA = m_A;
 		uint16_t result = m_A + operand;
 		m_CarryFlag = (result > 0xFF);
+
 		m_A = static_cast<uint8_t>(result);
 		UpdateFlags(m_A, oldA, operand, true);
 		return;
@@ -155,6 +186,7 @@ void CPU::Step()
 		uint8_t reg = ReadRegister(selector);
 		uint16_t result = m_A + reg;
 		m_CarryFlag = (result > 0xFF);
+
 		m_A = static_cast<uint8_t>(result);
 		UpdateFlags(m_A, oldA, reg, true);
 		return;
@@ -187,7 +219,7 @@ void CPU::Step()
 
 	case 0x24: // SUB_IM 2by
 	{
-		uint8_t operand = m_memoryUnit.Read(m_PC++);	
+		uint8_t operand = m_memoryUnit.Read(m_PC++);
 		uint8_t oldA = m_A;
 		m_CarryFlag = (operand > m_A);
 		m_A -= operand;
@@ -380,7 +412,7 @@ void CPU::Step()
 	}
 
 	/* Jump/Branch instructions */
-	
+
 	case 0x50: // JMP 3by
 	{
 		uint8_t high = m_memoryUnit.Read(m_PC++);

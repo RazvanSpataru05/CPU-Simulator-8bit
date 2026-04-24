@@ -24,6 +24,11 @@ Dissasembler::Dissasembler()
 	m_instructions[0x0E] = { "LDD_DIR", 3u };
 	m_instructions[0x0F] = { "LDD_REG", 2u };
 	m_instructions[0x10] = { "STD_DIR", 3u };
+	m_instructions[0x11] = { "LDA_IND", 2u };
+	m_instructions[0x12] = { "STA_IND", 2u };
+	m_instructions[0x13] = { "LDW_IM", 2u };
+	m_instructions[0x14] = { "INCW", 1u };
+
 
 	// Arithmetic instructions
 	m_instructions[0x20] = { "ADD_IM",  2u };

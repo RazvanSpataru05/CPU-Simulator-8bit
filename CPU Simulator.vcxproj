@@ -102,7 +102,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\razva\Desktop\SFML-3.0.2-windows-vc17-64-bit\SFML-3.0.2\include;"C:\Users\razva\Desktop\An2\CPU Simulator\include"</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\razva\Desktop\SFML-3.0.2-windows-vc17-64-bit\SFML-3.0.2\include;$(ProjectDir)src\ui;$(ProjectDir)src\debugger;$(ProjectDir)src\assembler;$(ProjectDir)src\core;$(ProjectDir)include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -120,7 +120,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\razva\Desktop\SFML-3.0.2-windows-vc17-64-bit\SFML-3.0.2\include;"C:\Users\razva\Desktop\An2\CPU Simulator\include"</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\razva\Desktop\SFML-3.0.2-windows-vc17-64-bit\SFML-3.0.2\include;$(ProjectDir)src\ui;$(ProjectDir)src\debugger;$(ProjectDir)src\assembler;$(ProjectDir)src\core;$(ProjectDir)include</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -131,41 +131,54 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="CPU Simulator.h" />
-    <ClInclude Include="CPU.h" />
-    <ClInclude Include="Dissasembler.h" />
-    <ClInclude Include="EditorUI.h" />
+    <ClInclude Include="CPU Simulator\src\assembler\ISAEntry.h" />
+    <ClInclude Include="CPU Simulator\src\core\CPU.h" />
+    <ClInclude Include="CPU Simulator\src\core\InstructionDef.h" />
+    <ClInclude Include="CPU Simulator\src\core\MemoryUnit.h" />
+    <ClInclude Include="CPU Simulator\src\debugger\Dissasembler.h" />
+    <ClInclude Include="CPU Simulator\src\ui\EditorUI.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="include\imgui_internal.h" />
-    <ClInclude Include="InstructionDef.h" />
-    <ClInclude Include="ISAEntry.h" />
-    <ClInclude Include="MemoryUnit.h" />
+    <ClInclude Include="src\assembler\Lexer.h" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="src\assembler\InstructionDef.h" />
+    <ClInclude Include="src\assembler\ISAEntry.h" />
+    <ClInclude Include="src\assembler\Token.h" />
+    <ClInclude Include="src\core\CPU.h" />
+    <ClInclude Include="src\core\InstructionDef.h" />
+    <ClInclude Include="src\core\MemoryUnit.h" />
+    <ClInclude Include="src\debugger\Dissasembler.h" />
+    <ClInclude Include="src\ui\EditorUI.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CPU Simulator.cpp" />
-    <ClCompile Include="CPU.cpp" />
-    <ClCompile Include="Dissasembler.cpp" />
-    <ClCompile Include="EditorUI.cpp" />
+    <ClCompile Include="src\assembler\Lexer.cpp" />
+    <ClCompile Include="Main.cpp" />
     <ClCompile Include="include\imgui-SFML.cpp" />
     <ClCompile Include="include\imgui.cpp" />
     <ClCompile Include="include\imgui_demo.cpp" />
     <ClCompile Include="include\imgui_draw.cpp" />
     <ClCompile Include="include\imgui_tables.cpp" />
     <ClCompile Include="include\imgui_widgets.cpp" />
-    <ClCompile Include="ISAEntry.cpp" />
-    <ClCompile Include="MemoryUnit.cpp" />
+    <ClCompile Include="src\assembler\ISAEntry.cpp" />
+    <ClCompile Include="src\core\CPU.cpp" />
+    <ClCompile Include="src\core\MemoryUnit.cpp" />
+    <ClCompile Include="src\debugger\Dissasembler.cpp" />
+    <ClCompile Include="src\ui\EditorUI.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CPU Simulator.rc" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="CPU Simulator.ico" />
-    <Image Include="small.ico" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="ISA.txt" />
+    <Text Include="CPU Simulator\resources\program.txt" />
+    <Text Include="resources\program.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="CPU Simulator\resources\README.md" />
+    <None Include="resources\README.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

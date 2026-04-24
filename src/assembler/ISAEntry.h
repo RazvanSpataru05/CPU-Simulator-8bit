@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <string>
 
 struct ISAEntry
 {
@@ -28,6 +29,10 @@ static const ISAEntry isaTable[] = {
     {"LDD_DIR", 0x0E, 3, "Loads value at immediate memory address into register D"},
     {"LDD_REG", 0x0F, 2, "Loads value from another register into register D"},
     {"STD_DIR", 0x10, 3, "Writes value of register D at memory address specified"},
+    {"LDA_IND", 0x11, 2, "Loads into register A the value from 16-bit register BC"},
+    {"STA_IND", 0x12, 2, "Writes into memory address of the BC register the value from register A "},
+    {"LDW_IM", 0x13, 3, "Loads a word (16 bits) into registers B and C. The first 8 bits are loaded into register B and the following 8 into register C"},
+    {"INCW", 0x14, 1, "Forms the 16-bit BC register and increments it"},
 
     /* Arithmetic operations */
     {"ADD_IM", 0x20, 2, "Adds immediate value to register A. Updates flags"},
@@ -82,3 +87,5 @@ static const ISAEntry isaTable[] = {
 };
 
 const ISAEntry* GetISATable(int& outSize);
+
+bool IsMnemonic(const std::string& word);

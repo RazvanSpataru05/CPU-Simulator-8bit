@@ -4,7 +4,9 @@
 
 #include "MemoryUnit.h"
 #include "Dissasembler.h"
-#include "EditorUI.h"
+#include "EditorUi.h"
+
+EditorMode mode = EditorMode::DISSASEMBLY;
 
 bool executeAuto = false;
 bool followPC = true;
@@ -18,7 +20,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 {
 	sf::Clock instructionCycle;
 	MemoryUnit memory;
-	memory.ParseValues();
+	memory.ParseValues("program.txt");
 	const std::array<uint8_t, 65536> initialMemory = memory.GetMemory();
 
 	CPU cpu(memory);
@@ -69,7 +71,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		window.clear(sf::Color(65, 65, 65));
 
 		EditorUI::DrawCpuState(cpu);
-		EditorUI::DrawDissasembler(memory, dissasembler, cpu);
+		EditorUI::DrawAssemblyPanel(mode, memory, dissasembler, cpu);
 		EditorUI::DrawMemoryView(memory, cpu, followPC);
 		EditorUI::DrawMenu(memory, initialMemory, executeAuto, followPC, cpu);
 		EditorUI::DrawSpeedSlider(speed);

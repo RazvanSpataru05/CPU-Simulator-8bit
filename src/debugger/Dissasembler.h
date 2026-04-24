@@ -1,6 +1,7 @@
 #pragma once
-#include "InstructionDef.h"
 #include <array>
+#include <string>
+#include "InstructionDef.h"
 
 class Dissasembler
 {
@@ -12,4 +13,3 @@ public:
 private:
 	std::array<InstructionDef, 256> m_instructions;
 };
-

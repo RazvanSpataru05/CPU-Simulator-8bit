@@ -1,4 +1,5 @@
 #include "EditorUI.h"
+#include "Lexer.h"
 
 uint8_t helperPage = 1u;
 uint16_t currentPage{};
@@ -107,12 +108,14 @@ static void DisplayPageInstructions(std::initializer_list<uint8_t> opcodes)
 
 	int tableSize;
 	const ISAEntry* table = GetISATable(tableSize);
-	for (int i = 0; i < tableSize; i++)
+	for (uint16_t i = 0; i < tableSize; i++)
 	{
 		for (uint8_t opcode : opcodes)
 		{
 			if (table[i].opcode == opcode)
+			{
 				DisplayInstruction(table, i);
+			}
 		}
 	}
 }
@@ -216,8 +219,10 @@ namespace EditorUI
 			if (ImGui::Button("Assemble & Load"))
 			{
 				const std::string sourceCode(editorBuffer);
-				
-				// TODO : Call the assembler and start running the project
+				Lexer lexer{ sourceCode };
+				lexer.Tokenize();
+				const std::string result = lexer.GetTokenizedSourceCode();
+				strncpy_s(editorBuffer, sizeof(editorBuffer), result.c_str(), _TRUNCATE);
 			}
 		}
 		else if (mode == EditorMode::DISSASEMBLY)

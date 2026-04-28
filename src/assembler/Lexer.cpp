@@ -11,12 +11,15 @@ void Lexer::Tokenize()
 {
 	if (m_sourceCode.empty()) return;
 
+	m_tokens.clear();
+	m_errors.clear();
+
 	while (m_currentIndex < m_sourceCode.size())
 	{
-		const char current = m_sourceCode[m_currentIndex];
+		const char currentChar = m_sourceCode[m_currentIndex];
 
-		auto it = std::find_if(m_handlers.begin(), m_handlers.end(), [current](const auto& pair)
-			{return pair.first(current); }
+		auto it = std::find_if(m_handlers.begin(), m_handlers.end(), [currentChar](const auto& pair)
+			{return pair.first(currentChar); }
 		);
 
 		if (it != m_handlers.end())
@@ -25,14 +28,37 @@ void Lexer::Tokenize()
 		}
 		else
 		{
-			// TO-DO: Handle Lexical Errors 
+			m_errors.push_back("Line " + std::to_string(m_lineNumber) +
+			": Invalid character '" + currentChar + "'.");
+			ErrorRecovery();
 		}
 	}
 
-	m_tokens.push_back(Token{
+	m_tokens.push_back(Token
+		{
 		TokenType::END,
 		"HLT",
 		m_lineNumber });
+}
+
+std::string Lexer::GetTokenizedSourceCode() const
+{
+	std::string tokenizedSourceCode;
+	for (const auto& token : m_tokens)
+	{
+		tokenizedSourceCode += GetTokenType(token) + ": " + token.value + '\n';
+	}
+	return tokenizedSourceCode;
+}
+
+const std::vector<std::string>& Lexer::GetErrors() const
+{
+	return m_errors;
+}
+
+const std::vector<Token>& Lexer::GetTokens() const
+{
+	return m_tokens;
 }
 
 void Lexer::ConsumeWord()
@@ -44,39 +70,36 @@ void Lexer::ConsumeWord()
 		word += m_sourceCode[m_currentIndex];
 		m_currentIndex++;
 	}
-	Token token = BuildToken(word);
-	m_tokens.emplace_back(token);
+	m_tokens.emplace_back(BuildToken(word));
+}
+
+void Lexer::CheckBase(const std::string& prefix, uint8_t& base)
+{
+	if (prefix == "0x") base = 16u;
+	else if (prefix == "0b") base = 2u;
+}
+
+bool Lexer::IsPrefix() const
+{
+	if (m_currentIndex + 1 < m_sourceCode.size() &&
+		(m_sourceCode[m_currentIndex] == '0' &&
+			(m_sourceCode[m_currentIndex + 1] == 'b' || m_sourceCode[m_currentIndex + 1] == 'x')))
+	{
+		return true;
+	}
+	return false;
 }
 
 void Lexer::ConsumeNumber()
 {
 	std::string number;
 	std::string prefix;
-	uint8_t numberPrefix = 10u;
-	while (m_currentIndex < m_sourceCode.size() &&
-		(m_sourceCode[m_currentIndex] == '0' || m_sourceCode[m_currentIndex] == 'b' || m_sourceCode[m_currentIndex] == 'x'))
-	{
-		prefix += m_sourceCode[m_currentIndex];
-		m_currentIndex++;
-	}
-	switch (prefix.size())
-	{
-	case 0:
-		break;
+	uint8_t base = 10u;
 
-	case 1:
-		number = std::move(prefix);
-		break;
-
-	case 2:
-		if (prefix[1] == 'b') numberPrefix = 2;
-		else if (prefix[1] == 'x') numberPrefix = 16;
-		number = std::move(prefix);
-		break;
-		
-	default:
-		// TO-DO HANDLE LEXICAL ERROR (multiple b's or x's);
-		break;
+	if (IsPrefix())
+	{
+		prefix = m_sourceCode[m_currentIndex] + m_sourceCode[++m_currentIndex];
+		CheckBase(prefix, base);
 	}
 
 	auto isValidDigit = [](char c, uint8_t base) -> bool
@@ -86,23 +109,49 @@ void Lexer::ConsumeNumber()
 			return isdigit(c);
 		};
 
-	while (m_currentIndex < m_sourceCode.size() && isValidDigit(m_sourceCode[m_currentIndex], numberPrefix))
+	while (m_currentIndex < m_sourceCode.size() && isValidDigit(m_sourceCode[m_currentIndex], base))
 	{
 		number += m_sourceCode[m_currentIndex];
 		m_currentIndex++;
 	}
-	Token token = BuildNumericToken(number, numberPrefix);
+
+	if (const auto error = CheckLexicalNumericError(base, number); error.has_value())
+	{
+		m_errors.emplace_back(error.value());
+		return;
+	}
+
+	if (m_currentIndex < m_sourceCode.size() && isalnum(m_sourceCode[m_currentIndex]))
+	{
+		m_errors.push_back("Line " + std::to_string(m_lineNumber) +
+			": Invalid digit " + m_sourceCode[m_currentIndex] + " for base " + std::to_string(base) + ".");
+		ErrorRecovery();
+		return;
+	}
+
+	Token token = BuildNumericToken(number, base);
 	m_tokens.emplace_back(token);
+}
+
+std::optional<std::string> Lexer::CheckLexicalNumericError(uint8_t base, const std::string& number) const
+{
+	// Base is diff than 10 (number has prefix), but number is empty
+	if (base != 10 && number.empty())
+	{
+		return "Line " + std::to_string(m_lineNumber) +
+			": No number present after base " + std::to_string(base) + ".";
+	}
+	return std::nullopt;
 }
 
 void Lexer::ConsumeNewLine()
 {
-	Token token = Token(
+	m_tokens.emplace_back(Token
+	(
 		TokenType::NEWLINE,
 		"\n",
 		m_lineNumber
-	);
-	m_tokens.emplace_back(token);
+	));
 	m_lineNumber++;
 	m_currentIndex++;
 }
@@ -115,12 +164,46 @@ void Lexer::ConsumeComment()
 	}
 }
 
+void Lexer::ErrorRecovery()
+{
+	while (m_currentIndex < m_sourceCode.size()
+		&& m_sourceCode[m_currentIndex] != ' '
+		&& m_sourceCode[m_currentIndex] != '\t'
+		&& m_sourceCode[m_currentIndex] != '\n')
+	{
+		m_currentIndex++;
+	}
+}
+
+std::string Lexer::GetTokenType(const Token& token) const
+{
+	switch (token.type)
+	{
+	case TokenType::REGISTER:
+		return "REGISTER";
+	case TokenType::MNEMONIC:
+		return "MNEMONIC";
+	case TokenType::LABEL_DEF:
+		return "LABEL_DEF";
+	case TokenType::LABEL_REF:
+		return "LABEL_REF";
+	case TokenType::NUMBER:
+		return "NUMBER";
+	case TokenType::NEWLINE:
+		return "NEWLINE";
+	case TokenType::END:
+		return "END";
+	default:
+		return "ERROR";
+	}
+}
+
 Token Lexer::BuildToken(const std::string& word)
 {
 	Token token;
 	token.line = m_lineNumber;
 	token.value = word;
-	
+
 	auto it = nameToSelector.find(word);
 	if (it != nameToSelector.end())
 	{
@@ -137,14 +220,14 @@ Token Lexer::BuildToken(const std::string& word)
 	if (m_sourceCode[m_currentIndex] == ':')
 	{
 		token.type = TokenType::LABEL_DEF;
-		m_currentIndex++;
+		++m_currentIndex;
 		return token;
 	}
 	token.type = TokenType::LABEL_REF;
 	return token;
 }
 
-Token Lexer::BuildNumericToken(const std::string& number, uint8_t prefix)
+Token Lexer::BuildNumericToken(const std::string& number, uint8_t prefix) const
 {
 	Token token;
 	token.line = m_lineNumber;

@@ -1,3 +1,5 @@
+#include "SFML/Graphics.hpp"
+
 #include "framework.h"
 #include <fcntl.h>
 #include <sstream>
